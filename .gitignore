@@ -19,3 +19,9 @@
 
 # Go workspace file
 go.work
+
+# Postgres data
+api/postgres-data
+
+# Environment file
+api/.env

@@ -6,9 +6,9 @@ services:
     container_name: userdb
     restart: unless-stopped
     environment:
-      POSTGRES_USER: useradmin
-      POSTGRES_PASSWORD: secretpassword
-      POSTGRES_DB: userdb
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "5432:5432"
     volumes:
@@ -16,7 +16,7 @@ services:
     networks:
       - usernet
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U useradmin -d userdb"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -33,11 +33,11 @@ services:
       - "8080:8080"
     environment:
       DB_HOST: db
-      DB_PORT: 5432
-      DB_USER: useradmin
-      DB_PASSWORD: secretpassword
-      DB_NAME: userdb
-      ENV: development
+      DB_PORT: ${DB_PORT}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      ENV: ${ENV}
     networks:
       - usernet
     restart: unless-stopped
@@ -49,7 +49,13 @@ services:
 
 volumes:
   pgdata:
+    driver: local
     name: userdb-data
+    # prideti docsuose kad sitas jog locally galima butu islaikyt same DB data
+    driver_opts:
+      type: none
+      device: ./postgres-data
+      o: bind
 
 networks:
   usernet:
