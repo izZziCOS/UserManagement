@@ -1,146 +1,102 @@
 package main
 
 import (
-	"fmt"
+	"context"
 	"log"
 	"net/http"
 	"os"
-	"strconv"
-	"sync"
+	"os/signal"
+	"syscall"
 	"time"
 
-	"github.com/izzzicos/UserManagement/api/models"
-	"golang.org/x/crypto/bcrypt"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
+	"github.com/izzzicos/UserManagement/api/internal/config"
+	"github.com/izzzicos/UserManagement/api/internal/handler"
+	"github.com/izzzicos/UserManagement/api/internal/models"
+	"github.com/izzzicos/UserManagement/api/internal/repository"
+	"github.com/izzzicos/UserManagement/api/internal/service"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
+	"go.uber.org/zap"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
-
-var (
-	users = make(map[string]models.User)
-	mu    = sync.Mutex{}
-)
-
-var db *gorm.DB
 
 func main() {
-
-	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=UTC",
-	os.Getenv("DB_HOST"), os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD"),
-	os.Getenv("DB_NAME"), os.Getenv("DB_PORT"))
-	var err error
-	db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	// Load configuration
+	cfg, err := config.Load()
 	if err != nil {
-		log.Fatal("failed to connect to database:", err)
+		log.Fatalf("failed to load config: %v", err)
+	}
+
+	// Initialize logger
+	logger, err := zap.NewProduction()
+	if err != nil {
+		log.Fatalf("failed to initialize logger: %v", err)
+	}
+	defer logger.Sync()
+
+	// Initialize database
+	db, err := gorm.Open(postgres.Open(buildDSN(cfg)), &gorm.Config{})
+	if err != nil {
+		logger.Fatal("failed to connect to database", zap.Error(err))
 	}
 
 	// Migrate the schema
 	if err := db.AutoMigrate(&models.User{}); err != nil {
-		log.Fatal("failed to migrate database:", err)
+		logger.Fatal("failed to migrate database", zap.Error(err))
 	}
 
-	r := gin.Default()
+	// Initialize layers
+	userRepo := repository.NewUserRepository(db)
+	userService := service.NewUserService(userRepo)
+	userHandler := handler.NewUserHandler(userService)
 
-	r.GET("/users", getUsers)
-	r.POST("/users", createUser)
-	r.PUT("/users/:id", updateUser)
-	r.DELETE("/users/:id", deleteUser)
+	// Create Gin router
+	router := gin.Default()
 
-	r.Run(":8080")
+	// Register routes
+	userHandler.RegisterRoutes(router)
+
+	// Add health check endpoint
+	router.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"status": "ok"})
+	})
+
+	// Start server
+	srv := &http.Server{
+		Addr:    ":" + cfg.ServerPort,
+		Handler: router,
+	}
+
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Fatal("failed to start server", zap.Error(err))
+		}
+	}()
+
+	logger.Info("server started", zap.String("port", cfg.ServerPort))
+
+	// Graceful shutdown
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	logger.Info("shutting down server...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		logger.Error("server forced to shutdown", zap.Error(err))
+	}
+
+	logger.Info("server exited properly")
 }
 
-func hashPassword(password string) (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	return string(bytes), err
+func buildDSN(cfg *config.Config) string {
+	return "host=" + cfg.DBHost + 
+		" user=" + cfg.DBUser + 
+		" password=" + cfg.DBPassword + 
+		" dbname=" + cfg.DBName + 
+		" port=" + cfg.DBPort + 
+		" sslmode=disable TimeZone=UTC"
 }
-
-func getUsers(c *gin.Context) {
-	var users []models.User
-	query := db.Model(&models.User{})
-
-	// Filters
-	if country := c.Query("country"); country != "" {
-		query = query.Where("country = ?", country)
-	}
-
-	// Pagination
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
-	if page < 1 {
-		page = 1
-	}
-	if limit < 1 {
-		limit = 10
-	}
-	offset := (page - 1) * limit
-
-	if err := query.Offset(offset).Limit(limit).Find(&users).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, users)
-}
-
-
-func createUser(c *gin.Context) {
-	var input models.User
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	hashedPassword, err := hashPassword(input.Password)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to hash password"})
-		return
-	}
-	input.Password = hashedPassword
-	now := time.Now()
-	input.ID = uuid.New().String()
-	input.CreatedAt = now
-	input.UpdatedAt = now
-
-	if err := db.Create(&input).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	c.JSON(http.StatusCreated, input)
-}
-
-
-func updateUser(c *gin.Context) {
-	var user models.User
-	id := c.Param("id")
-	if err := db.First(&user, "id = ?", id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
-		return
-	}
-
-	var input models.User
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	input.ID = user.ID
-	input.CreatedAt = user.CreatedAt
-	input.UpdatedAt = time.Now()
-
-	if err := db.Save(&input).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, input)
-}
-
-
-func deleteUser(c *gin.Context) {
-	if err := db.Delete(&models.User{}, "id = ?", c.Param("id")).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	c.Status(http.StatusNoContent)
-}
-
