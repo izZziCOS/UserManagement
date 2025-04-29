@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/izzzicos/UserManagement/api/internal/config"
 	"github.com/izzzicos/UserManagement/api/internal/handler"
 	"github.com/izzzicos/UserManagement/api/internal/models"
 	"github.com/izzzicos/UserManagement/api/internal/repository"
@@ -20,6 +21,26 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
+
+func setupDB() (*gorm.DB, error) {
+	dsn := config.BuildDSN()
+	return gorm.Open(postgres.Open(dsn), &gorm.Config{})
+}
+
+
+func setupRouter(db *gorm.DB) *gin.Engine {
+	userRepo := repository.NewUserRepository(db)
+	userService := service.NewUserService(userRepo)
+	userHandler := handler.NewUserHandler(userService)
+
+	router := gin.Default()
+	userHandler.RegisterRoutes(router)
+	router.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"status": "ok"})
+	})
+
+	return router
+}
 
 func main() {
     // Load configuration
@@ -35,31 +56,17 @@ func main() {
     defer logger.Sync()
 
     // Initialize database
-    db, err := gorm.Open(postgres.Open(buildDSN()), &gorm.Config{})
-    if err != nil {
-        logger.Fatal("failed to connect to database", zap.Error(err))
-    }
+    db, err := setupDB()
+	if err != nil {
+		log.Fatalf("failed to connect to database: %v", err)
+	}
 
     // Migrate the schema
     if err := db.AutoMigrate(&models.User{}); err != nil {
         logger.Fatal("failed to migrate database", zap.Error(err))
     }
 
-    // Initialize layers
-    userRepo := repository.NewUserRepository(db)
-    userService := service.NewUserService(userRepo)
-    userHandler := handler.NewUserHandler(userService)
-
-    // Create Gin router
-    router := gin.Default()
-
-    // Register routes
-    userHandler.RegisterRoutes(router)
-
-    // Add health check endpoint
-    router.GET("/health", func(c *gin.Context) {
-        c.JSON(http.StatusOK, gin.H{"status": "ok"})
-    })
+    router := setupRouter(db)
 
     // Start server
     srv := &http.Server{
@@ -89,13 +96,4 @@ func main() {
     }
 
     logger.Info("server exited properly")
-}
-
-func buildDSN() string {
-    return "host=" + os.Getenv("DB_HOST") +
-        " user=" + os.Getenv("DB_USER") +
-        " password=" + os.Getenv("DB_PASSWORD") +
-        " dbname=" + os.Getenv("DB_NAME") +
-        " port=" + os.Getenv("DB_PORT") +
-        " sslmode=disable TimeZone=UTC"
 }
