@@ -11,7 +11,6 @@ type UserService interface {
     UpdateUser(ctx context.Context, id string, req UpdateUserRequest) (*models.UserResponse, error)
     DeleteUser(ctx context.Context, id string) error
     GetUsers(ctx context.Context, filter UserFilter, pagination Pagination) ([]models.UserResponse, error)
-    GetUserByID(ctx context.Context, id string) (*models.UserResponse, error)
 }
 
 type UserFilter struct {

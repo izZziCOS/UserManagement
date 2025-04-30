@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"log"
 	"time"
 
 	"github.com/izzzicos/UserManagement/api/internal/models"
@@ -11,10 +12,14 @@ import (
 
 type userService struct {
     repo repository.UserRepository
+	notifier Notifier
 }
 
-func NewUserService(repo repository.UserRepository) UserService {
-    return &userService{repo: repo}
+func NewUserService(repo repository.UserRepository, notifier Notifier) UserService {
+    return &userService{
+        repo:     repo,
+        notifier: notifier,
+    }
 }
 
 func (s *userService) CreateUser(ctx context.Context, req CreateUserRequest) (*models.UserResponse, error) {
@@ -35,43 +40,87 @@ func (s *userService) CreateUser(ctx context.Context, req CreateUserRequest) (*m
         return nil, err
     }
 
+	go func(u *models.User) {
+        notifyCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+        defer cancel()
+        
+        if err := s.notifier.NotifyUserCreated(notifyCtx, u); err != nil {
+            log.Printf("Failed to send notification for user %s: %v", u.ID, err)
+        } else {
+            log.Printf("Successfully notified about user creation: %s", u.ID)
+        }
+    }(user) // Pass user as parameter to avoid race conditions
+
     response := user.ToResponse()
     return &response, nil
 }
 
 func (s *userService) UpdateUser(ctx context.Context, id string, req UpdateUserRequest) (*models.UserResponse, error) {
-    user, err := s.repo.FindByID(ctx, id)
+    oldUser, err := s.repo.FindByID(ctx, id)
     if err != nil {
         return nil, err
     }
 
+    updatedUser := *oldUser
+    
     if req.FirstName != "" {
-        user.FirstName = req.FirstName
+        updatedUser.FirstName = req.FirstName
     }
     if req.LastName != "" {
-        user.LastName = req.LastName
+        updatedUser.LastName = req.LastName
     }
     if req.Nickname != "" {
-        user.Nickname = req.Nickname
+        updatedUser.Nickname = req.Nickname
     }
     if req.Email != "" {
-        user.Email = req.Email
+        updatedUser.Email = req.Email
     }
     if req.Country != "" {
-        user.Country = req.Country
+        updatedUser.Country = req.Country
     }
-    user.UpdatedAt = time.Now()
+    updatedUser.UpdatedAt = time.Now()
 
-    if err := s.repo.Update(ctx, user); err != nil {
+    if err := s.repo.Update(ctx, &updatedUser); err != nil {
         return nil, err
     }
 
-    response := user.ToResponse()
+    go func(oldU, newU models.User) {
+        notifyCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+        defer cancel()
+        
+        if err := s.notifier.NotifyUserUpdated(notifyCtx, &oldU, &newU); err != nil {
+            log.Printf("Failed to send update notification for user %s: %v", id, err)
+        } else {
+            log.Printf("Successfully notified about user update: %s", id)
+        }
+    }(*oldUser, updatedUser)
+
+	response := updatedUser.ToResponse()
     return &response, nil
 }
 
 func (s *userService) DeleteUser(ctx context.Context, id string) error {
-    return s.repo.Delete(ctx, id)
+    user, err := s.repo.FindByID(ctx, id)
+    if err != nil {
+        return err
+    }
+    
+    if err := s.repo.Delete(ctx, id); err != nil {
+        return err
+    }
+    
+	go func() {
+	notifyCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	
+	if err := s.notifier.NotifyUserDeleted(notifyCtx, id); err != nil {
+		log.Printf("Failed to send notification for user deletion %s: %v", user.ID, err)
+	} else {
+		log.Printf("Successfully notified about user deletion: %s", user.ID)
+	}
+	}()
+    
+    return nil
 }
 
 func (s *userService) GetUsers(ctx context.Context, filter UserFilter, pagination Pagination) ([]models.UserResponse, error) {
@@ -94,16 +143,6 @@ func (s *userService) GetUsers(ctx context.Context, filter UserFilter, paginatio
     }
 
     return responses, nil
-}
-
-func (s *userService) GetUserByID(ctx context.Context, id string) (*models.UserResponse, error) {
-    user, err := s.repo.FindByID(ctx, id)
-    if err != nil {
-        return nil, err
-    }
-
-    response := user.ToResponse()
-    return &response, nil
 }
 
 func hashPassword(password string) (string, error) {

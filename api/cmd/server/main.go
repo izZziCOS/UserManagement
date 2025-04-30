@@ -28,9 +28,9 @@ func setupDB() (*gorm.DB, error) {
 }
 
 
-func setupRouter(db *gorm.DB) *gin.Engine {
+func setupRouter(db *gorm.DB, notifier service.Notifier) *gin.Engine {
 	userRepo := repository.NewUserRepository(db)
-	userService := service.NewUserService(userRepo)
+	userService := service.NewUserService(userRepo, notifier)
 	userHandler := handler.NewUserHandler(userService)
 
 	router := gin.Default()
@@ -66,7 +66,27 @@ func main() {
         logger.Fatal("failed to migrate database", zap.Error(err))
     }
 
-    router := setupRouter(db)
+	// Create notifier
+    amqpNotifier, err := service.NewAMQPNotifier(
+        os.Getenv("AMQP_URL"),
+        "user_events",
+    )
+    if err != nil {
+        logger.Fatal("failed to create notifier", zap.Error(err))
+    }
+    defer func() {
+        if err := amqpNotifier.Close(); err != nil {
+            logger.Error("failed to close notifier", zap.Error(err))
+        }
+    }()
+
+    // Start test consumer in debug mode
+    if os.Getenv("DEBUG") == "true" {
+        logger.Info("starting test consumer for debugging")
+        amqpNotifier.StartTestConsumer()
+    }
+
+    router := setupRouter(db, amqpNotifier)
 
     // Start server
     srv := &http.Server{
@@ -75,12 +95,15 @@ func main() {
     }
 
     go func() {
-        if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-            logger.Fatal("failed to start server", zap.Error(err))
-        }
-    }()
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Fatal("failed to start server", zap.Error(err))
+		}
+	}()
 
-    logger.Info("server started", zap.String("port", os.Getenv("API_PORT")))
+	logger.Info("server started", 
+		zap.String("port", os.Getenv("API_PORT")),
+		zap.String("amqp_queue", "user_events"),
+	)
 
     // Graceful shutdown
     quit := make(chan os.Signal, 1)

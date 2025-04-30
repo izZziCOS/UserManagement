@@ -21,7 +21,6 @@ func NewUserHandler(service service.UserService) *UserHandler {
 func (h *UserHandler) RegisterRoutes(router *gin.Engine) {
     router.GET("/users", h.GetUsers)
     router.POST("/users", h.CreateUser)
-    router.GET("/users/:id", h.GetUserByID)
     router.PUT("/users/:id", h.UpdateUser)
     router.DELETE("/users/:id", h.DeleteUser)
 }
@@ -61,22 +60,6 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
     }
 
     c.JSON(http.StatusCreated, user)
-}
-
-func (h *UserHandler) GetUserByID(c *gin.Context) {
-    id := c.Param("id")
-    if _, err := uuid.Parse(id); err != nil {
-        errorResponse(c, http.StatusBadRequest, "invalid user ID")
-        return
-    }
-
-    user, err := h.service.GetUserByID(c.Request.Context(), id)
-    if err != nil {
-        errorResponse(c, http.StatusNotFound, "user not found")
-        return
-    }
-
-    c.JSON(http.StatusOK, user)
 }
 
 func (h *UserHandler) UpdateUser(c *gin.Context) {
