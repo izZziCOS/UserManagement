@@ -39,7 +39,7 @@ func TestUserRepository_Create(t *testing.T) {
 
 	mock.ExpectBegin()
 	mock.ExpectExec(`INSERT INTO "users"`).
-		WithArgs(user.ID, user.FirstName, user.LastName, user.Nickname, 
+		WithArgs(user.ID, user.FirstName, user.LastName, user.Nickname,
 			user.Password, user.Email, user.Country, sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
