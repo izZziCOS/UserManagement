@@ -1,7 +1,9 @@
+// Package config provides configuration utilities for the application
 package config
 
 import "os"
 
+// BuildDSN constructs a PostgreSQL database connection string (DSN) from environment variables
 func BuildDSN() string {
 	return "host=" + os.Getenv("DB_HOST") +
 		" user=" + os.Getenv("DB_USER") +

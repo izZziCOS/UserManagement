@@ -1,3 +1,5 @@
+// Package service implements an AMQP-based notifier for user events
+// It publishes user lifecycle events (create/update/delete) to a RabbitMQ queue
 package service
 
 import (
@@ -11,14 +13,17 @@ import (
 	"github.com/rabbitmq/amqp091-go"
 )
 
+// AMQPNNotifier implements contracts.Notifier using AMQP/RabbitMQ
 type AMQPNNotifier struct {
 	conn    *amqp091.Connection
 	channel *amqp091.Channel
 	queue   string
 }
 
+// Ensure AMQPNNotifier implements contracts.Notifier at compile time
 var _ contracts.Notifier = (*AMQPNNotifier)(nil)
 
+// NewAMQPNotifier creates a new AMQP notifier connected to the specified queue
 func NewAMQPNotifier(amqpURL, queue string) (*AMQPNNotifier, error) {
 	conn, err := amqp091.Dial(amqpURL)
 	if err != nil {
@@ -53,10 +58,12 @@ func NewAMQPNotifier(amqpURL, queue string) (*AMQPNNotifier, error) {
 	}, nil
 }
 
+// NotifyUserCreated publishes a user creation event to the queue
 func (n *AMQPNNotifier) NotifyUserCreated(ctx context.Context, user *models.User) error {
 	return n.publish(ctx, "user.created", user)
 }
 
+// NotifyUserUpdated publishes a user update event to the queue
 func (n *AMQPNNotifier) NotifyUserUpdated(ctx context.Context, oldUser, newUser *models.User) error {
 	payload := struct {
 		Old models.User `json:"old"`
@@ -65,10 +72,12 @@ func (n *AMQPNNotifier) NotifyUserUpdated(ctx context.Context, oldUser, newUser 
 	return n.publish(ctx, "user.updated", payload)
 }
 
+// NotifyUserDeleted publishes a user deletion event to the queue
 func (n *AMQPNNotifier) NotifyUserDeleted(ctx context.Context, userID string) error {
 	return n.publish(ctx, "user.deleted", map[string]string{"id": userID})
 }
 
+// publish is the internal method that handles the actual message publishing
 func (n *AMQPNNotifier) publish(ctx context.Context, eventType string, payload interface{}) error {
 	body, err := json.Marshal(payload)
 	if err != nil {
@@ -95,6 +104,8 @@ func (n *AMQPNNotifier) publish(ctx context.Context, eventType string, payload i
 	return err
 }
 
+// StartTestConsumer starts a temporary consumer for testing purposes
+// Note: This is for development/testing only, not for production use
 func (n *AMQPNNotifier) StartTestConsumer() {
 	msgs, err := n.channel.Consume(
 		n.queue, // queue
@@ -117,7 +128,7 @@ func (n *AMQPNNotifier) StartTestConsumer() {
 	}()
 }
 
-// Close cleans up the AMQP connection and channel
+// Close cleanly shuts down the AMQP connection and channel
 func (n *AMQPNNotifier) Close() error {
 	var err error
 

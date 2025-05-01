@@ -1,3 +1,4 @@
+// Package handler implements HTTP request handlers for user management
 package handler
 
 import (
@@ -10,14 +11,17 @@ import (
 	"github.com/google/uuid"
 )
 
+// UserHandler manages HTTP requests for user operations
 type UserHandler struct {
 	service contracts.UserService
 }
 
+// NewUserHandler creates a new UserHandler with the given UserService
 func NewUserHandler(service contracts.UserService) *UserHandler {
 	return &UserHandler{service: service}
 }
 
+// RegisterRoutes sets up the HTTP route mappings for user operations
 func (h *UserHandler) RegisterRoutes(router *gin.Engine) {
 	router.GET("/users", h.GetUsers)
 	router.POST("/users", h.CreateUser)
@@ -25,11 +29,11 @@ func (h *UserHandler) RegisterRoutes(router *gin.Engine) {
 	router.DELETE("/users/:id", h.DeleteUser)
 }
 
+// GetUsers handles GET /users requests with optional query parameters
 func (h *UserHandler) GetUsers(c *gin.Context) {
 	filter := contracts.UserFilter{}
 
 	// Only set the filter fields if they exist in the query
-
 	if firstName := c.Query("first_name"); firstName != "" {
 		filter.FirstName = &firstName
 	}
@@ -45,6 +49,7 @@ func (h *UserHandler) GetUsers(c *gin.Context) {
 	if email := c.Query("email"); email != "" {
 		filter.Email = &email
 	}
+
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
 	pagination := contracts.Pagination{
@@ -61,6 +66,7 @@ func (h *UserHandler) GetUsers(c *gin.Context) {
 	c.JSON(http.StatusOK, users)
 }
 
+// CreateUser handles POST /users requests for creating new users
 func (h *UserHandler) CreateUser(c *gin.Context) {
 	var req contracts.CreateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -77,6 +83,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 	c.JSON(http.StatusCreated, user)
 }
 
+// UpdateUser handles PUT /users/:id requests for updating users
 func (h *UserHandler) UpdateUser(c *gin.Context) {
 	id := c.Param("id")
 	if _, err := uuid.Parse(id); err != nil {
@@ -99,6 +106,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 	c.JSON(http.StatusOK, user)
 }
 
+// DeleteUser handles DELETE /users/:id requests
 func (h *UserHandler) DeleteUser(c *gin.Context) {
 	id := c.Param("id")
 	if _, err := uuid.Parse(id); err != nil {
@@ -114,6 +122,7 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
+// errorResponse formats error responses consistently across handlers.
 func errorResponse(c *gin.Context, status int, message string) {
 	c.JSON(status, gin.H{"error": message})
 }

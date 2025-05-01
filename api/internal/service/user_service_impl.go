@@ -1,3 +1,6 @@
+// Package service implements business logic for user management
+// It handles user creation, updates, deletion, and queries,
+// while coordinating with repository and notification systems
 package service
 
 import (
@@ -11,11 +14,13 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// userService implements contracts.UserService interface
 type userService struct {
 	repo     repository.UserRepository
 	notifier contracts.Notifier
 }
 
+// NewUserService creates a new user service with the given repository and notifier
 func NewUserService(repo repository.UserRepository, notifier contracts.Notifier) contracts.UserService {
 	return &userService{
 		repo:     repo,
@@ -23,6 +28,7 @@ func NewUserService(repo repository.UserRepository, notifier contracts.Notifier)
 	}
 }
 
+// CreateUser creates a new user with the given request data
 func (s *userService) CreateUser(ctx context.Context, req contracts.CreateUserRequest) (*models.UserResponse, error) {
 	hashedPassword, err := hashPassword(req.Password)
 	if err != nil {
@@ -56,6 +62,7 @@ func (s *userService) CreateUser(ctx context.Context, req contracts.CreateUserRe
 	return &response, nil
 }
 
+// UpdateUser updates an existing user with the given ID and request data
 func (s *userService) UpdateUser(ctx context.Context, id string, req contracts.UpdateUserRequest) (*models.UserResponse, error) {
 	oldUser, err := s.repo.FindByID(ctx, id)
 	if err != nil {
@@ -100,6 +107,7 @@ func (s *userService) UpdateUser(ctx context.Context, id string, req contracts.U
 	return &response, nil
 }
 
+// DeleteUser removes a user with the given ID
 func (s *userService) DeleteUser(ctx context.Context, id string) error {
 	user, err := s.repo.FindByID(ctx, id)
 	if err != nil {
@@ -124,6 +132,7 @@ func (s *userService) DeleteUser(ctx context.Context, id string) error {
 	return nil
 }
 
+// GetUsers retrieves users matching the given filter, with pagination support
 func (s *userService) GetUsers(ctx context.Context, filter contracts.UserFilter, pagination contracts.Pagination) ([]models.UserResponse, error) {
 	repoFilter := repository.UserFilter{
 		FirstName: filter.FirstName,
@@ -150,6 +159,7 @@ func (s *userService) GetUsers(ctx context.Context, filter contracts.UserFilter,
 	return responses, nil
 }
 
+// hashPassword generates a bcrypt hash of the password using default cost
 func hashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	return string(bytes), err
