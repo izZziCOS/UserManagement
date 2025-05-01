@@ -139,7 +139,8 @@ Users are stored with:
 - Email
 - Password (bcrypt hashed)
 - Country
-- Timestamps
+- Created At (Timestamps)
+- Updated At (Timestamps)
 
 ### Event Notifications
 
