@@ -3,8 +3,8 @@ package mocks
 import (
 	"context"
 
+	service "github.com/izzzicos/UserManagement/api/internal/contracts"
 	"github.com/izzzicos/UserManagement/api/internal/models"
-	"github.com/izzzicos/UserManagement/api/internal/service"
 	"github.com/stretchr/testify/mock"
 )
 

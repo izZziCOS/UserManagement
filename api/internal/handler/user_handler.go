@@ -4,17 +4,17 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/izzzicos/UserManagement/api/internal/service"
+	"github.com/izzzicos/UserManagement/api/internal/contracts"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
 
 type UserHandler struct {
-	service service.UserService
+	service contracts.UserService
 }
 
-func NewUserHandler(service service.UserService) *UserHandler {
+func NewUserHandler(service contracts.UserService) *UserHandler {
 	return &UserHandler{service: service}
 }
 
@@ -26,7 +26,7 @@ func (h *UserHandler) RegisterRoutes(router *gin.Engine) {
 }
 
 func (h *UserHandler) GetUsers(c *gin.Context) {
-	filter := service.UserFilter{}
+	filter := contracts.UserFilter{}
 
 	// Only set the filter fields if they exist in the query
 
@@ -47,7 +47,7 @@ func (h *UserHandler) GetUsers(c *gin.Context) {
 	}
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
-	pagination := service.Pagination{
+	pagination := contracts.Pagination{
 		Page:  page,
 		Limit: limit,
 	}
@@ -62,7 +62,7 @@ func (h *UserHandler) GetUsers(c *gin.Context) {
 }
 
 func (h *UserHandler) CreateUser(c *gin.Context) {
-	var req service.CreateUserRequest
+	var req contracts.CreateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		errorResponse(c, http.StatusBadRequest, "invalid request body")
 		return
@@ -84,7 +84,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 		return
 	}
 
-	var req service.UpdateUserRequest
+	var req contracts.UpdateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		errorResponse(c, http.StatusBadRequest, "invalid request body")
 		return

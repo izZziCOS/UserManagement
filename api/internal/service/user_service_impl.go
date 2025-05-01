@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/izzzicos/UserManagement/api/internal/contracts"
 	"github.com/izzzicos/UserManagement/api/internal/models"
 	"github.com/izzzicos/UserManagement/api/internal/repository"
 	"golang.org/x/crypto/bcrypt"
@@ -12,17 +13,17 @@ import (
 
 type userService struct {
 	repo     repository.UserRepository
-	notifier Notifier
+	notifier contracts.Notifier
 }
 
-func NewUserService(repo repository.UserRepository, notifier Notifier) UserService {
+func NewUserService(repo repository.UserRepository, notifier contracts.Notifier) contracts.UserService {
 	return &userService{
 		repo:     repo,
 		notifier: notifier,
 	}
 }
 
-func (s *userService) CreateUser(ctx context.Context, req CreateUserRequest) (*models.UserResponse, error) {
+func (s *userService) CreateUser(ctx context.Context, req contracts.CreateUserRequest) (*models.UserResponse, error) {
 	hashedPassword, err := hashPassword(req.Password)
 	if err != nil {
 		return nil, err
@@ -55,7 +56,7 @@ func (s *userService) CreateUser(ctx context.Context, req CreateUserRequest) (*m
 	return &response, nil
 }
 
-func (s *userService) UpdateUser(ctx context.Context, id string, req UpdateUserRequest) (*models.UserResponse, error) {
+func (s *userService) UpdateUser(ctx context.Context, id string, req contracts.UpdateUserRequest) (*models.UserResponse, error) {
 	oldUser, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return nil, err
@@ -123,7 +124,7 @@ func (s *userService) DeleteUser(ctx context.Context, id string) error {
 	return nil
 }
 
-func (s *userService) GetUsers(ctx context.Context, filter UserFilter, pagination Pagination) ([]models.UserResponse, error) {
+func (s *userService) GetUsers(ctx context.Context, filter contracts.UserFilter, pagination contracts.Pagination) ([]models.UserResponse, error) {
 	repoFilter := repository.UserFilter{
 		FirstName: filter.FirstName,
 		LastName:  filter.LastName,

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/izzzicos/UserManagement/api/internal/config"
+	"github.com/izzzicos/UserManagement/api/internal/contracts"
 	"github.com/izzzicos/UserManagement/api/internal/handler"
 	"github.com/izzzicos/UserManagement/api/internal/models"
 	"github.com/izzzicos/UserManagement/api/internal/repository"
@@ -26,7 +27,7 @@ func setupDB() (*gorm.DB, error) {
 	return gorm.Open(postgres.Open(dsn), &gorm.Config{})
 }
 
-func setupRouter(db *gorm.DB, notifier service.Notifier) *gin.Engine {
+func setupRouter(db *gorm.DB, notifier contracts.Notifier) *gin.Engine {
 	userRepo := repository.NewUserRepository(db)
 	userService := service.NewUserService(userRepo, notifier)
 	userHandler := handler.NewUserHandler(userService)

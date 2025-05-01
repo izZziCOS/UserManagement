@@ -4,8 +4,9 @@ import (
 	"context"
 	"testing"
 
+	"github.com/izzzicos/UserManagement/api/internal/contracts"
+	"github.com/izzzicos/UserManagement/api/internal/mocks"
 	"github.com/izzzicos/UserManagement/api/internal/models"
-	"github.com/izzzicos/UserManagement/api/internal/repository/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"golang.org/x/crypto/bcrypt"
@@ -13,9 +14,10 @@ import (
 
 func TestUserService_CreateUser(t *testing.T) {
 	mockRepo := new(mocks.UserRepository)
-	service := NewUserService(mockRepo)
+	mockNotifier := new(mocks.Notifier)
+	service := NewUserService(mockRepo, mockNotifier)
 
-	req := CreateUserRequest{
+	req := contracts.CreateUserRequest{
 		FirstName: "John",
 		LastName:  "Doe",
 		Email:     "john@example.com",
@@ -32,6 +34,9 @@ func TestUserService_CreateUser(t *testing.T) {
 			assert.Equal(t, req.Email, user.Email)
 			assert.NoError(t, bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)))
 		})
+
+	mockNotifier.On("NotifyUserCreated", mock.Anything, mock.AnythingOfType("*models.User")).
+		Return(nil)
 
 	_, err := service.CreateUser(context.Background(), req)
 	assert.NoError(t, err)

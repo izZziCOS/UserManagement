@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/izzzicos/UserManagement/api/internal/contracts"
 	"github.com/izzzicos/UserManagement/api/internal/models"
 	"github.com/rabbitmq/amqp091-go"
 )
@@ -16,7 +17,7 @@ type AMQPNNotifier struct {
 	queue   string
 }
 
-var _ Notifier = (*AMQPNNotifier)(nil)
+var _ contracts.Notifier = (*AMQPNNotifier)(nil)
 
 func NewAMQPNotifier(amqpURL, queue string) (*AMQPNNotifier, error) {
 	conn, err := amqp091.Dial(amqpURL)

@@ -75,7 +75,6 @@ func (r *userRepository) FindAll(ctx context.Context, filter UserFilter, paginat
 		pagination.Limit = 10
 	}
 	offset := (pagination.Page - 1) * pagination.Limit
-
 	err := query.Offset(offset).Limit(pagination.Limit).Find(&users).Error
 	return users, err
 }

@@ -9,8 +9,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/assert/v2"
+	"github.com/izzzicos/UserManagement/api/internal/mocks"
 	"github.com/izzzicos/UserManagement/api/internal/models"
-	"github.com/izzzicos/UserManagement/api/internal/service/mocks"
 	"github.com/stretchr/testify/mock"
 )
 
