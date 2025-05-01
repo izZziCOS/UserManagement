@@ -70,7 +70,7 @@ volumes:
   pgdata:
     driver: local
     name: userdb-data
-    # prideti docsuose kad sitas jog locally galima butu islaikyt same DB data
+    # Creates a local persistent data
     driver_opts:
       type: none
       device: ./postgres-data

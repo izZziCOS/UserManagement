@@ -62,7 +62,7 @@ USERMANAGEMENT/
 
 ```bash
 git clone https://github.com/izzzicos/UserManagement.git
-cd UserManagement
+cd UserManagement/api
 ```
 
 ### 2. Set up environment variables
