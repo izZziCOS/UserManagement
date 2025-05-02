@@ -28,7 +28,6 @@ USERMANAGEMENT/
 │   ├── repository/    # Database operations
 │   └── service/       # Business logic and event notifications
 ├── postgres-data/     # Persistent database storage
-├── tests/             # Integration tests
 ├── docker-compose.yml # Docker compose file
 ├── Dockerfile         # Dockerfile
 └── ...                # Configuration files
