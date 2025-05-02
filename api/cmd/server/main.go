@@ -1,3 +1,4 @@
+// Package main is the entry point for the User Management API
 package main
 
 import (
@@ -22,11 +23,13 @@ import (
 	"gorm.io/gorm"
 )
 
+// setupDB initializes and returns a new database connection
 func setupDB() (*gorm.DB, error) {
 	dsn := config.BuildDSN()
 	return gorm.Open(postgres.Open(dsn), &gorm.Config{})
 }
 
+// setupRouter configures the application routes and middleware
 func setupRouter(db *gorm.DB, notifier contracts.Notifier) *gin.Engine {
 	userRepo := repository.NewUserRepository(db)
 	userService := service.NewUserService(userRepo, notifier)
@@ -41,6 +44,7 @@ func setupRouter(db *gorm.DB, notifier contracts.Notifier) *gin.Engine {
 	return router
 }
 
+// main is the application entry point
 func main() {
 	// Configure logger to include timestamps and microsecond precision
 	log.SetFlags(log.LstdFlags | log.Lmicroseconds | log.Lshortfile)
