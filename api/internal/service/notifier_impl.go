@@ -81,8 +81,7 @@ func (n *AMQPNNotifier) NotifyUserDeleted(ctx context.Context, userID string) er
 func (n *AMQPNNotifier) publish(ctx context.Context, eventType string, payload interface{}) error {
 	body, err := json.Marshal(payload)
 	if err != nil {
-		log.Printf("Failed to marshal payload: %v", err)
-		return err
+		return fmt.Errorf("failed to marshal payload: %w", err)
 	}
 
 	log.Printf("Publishing message to queue '%s': %s", n.queue, string(body))
@@ -99,7 +98,7 @@ func (n *AMQPNNotifier) publish(ctx context.Context, eventType string, payload i
 		})
 
 	if err != nil {
-		log.Printf("Failed to publish message: %v", err)
+		err = fmt.Errorf("failed to publish the message: %w", err)
 	}
 	return err
 }

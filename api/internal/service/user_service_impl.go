@@ -5,6 +5,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"time"
 
@@ -32,7 +33,7 @@ func NewUserService(repo repository.UserRepository, notifier contracts.Notifier)
 func (s *userService) CreateUser(ctx context.Context, req contracts.CreateUserRequest) (*models.UserResponse, error) {
 	hashedPassword, err := hashPassword(req.Password)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to hash the password: %w", err)
 	}
 
 	user := models.NewUser()
@@ -44,7 +45,7 @@ func (s *userService) CreateUser(ctx context.Context, req contracts.CreateUserRe
 	user.Country = req.Country
 
 	if err := s.repo.Create(ctx, user); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create user in DB: %w", err)
 	}
 
 	go func(u *models.User) {
@@ -56,7 +57,7 @@ func (s *userService) CreateUser(ctx context.Context, req contracts.CreateUserRe
 		} else {
 			log.Printf("Successfully notified about user creation: %s", u.ID)
 		}
-	}(user) // Pass user as parameter to avoid race conditions
+	}(user)
 
 	response := user.ToResponse()
 	return &response, nil
@@ -66,7 +67,7 @@ func (s *userService) CreateUser(ctx context.Context, req contracts.CreateUserRe
 func (s *userService) UpdateUser(ctx context.Context, id string, req contracts.UpdateUserRequest) (*models.UserResponse, error) {
 	oldUser, err := s.repo.FindByID(ctx, id)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed find the user in DB: %w", err)
 	}
 
 	updatedUser := *oldUser
@@ -89,7 +90,7 @@ func (s *userService) UpdateUser(ctx context.Context, id string, req contracts.U
 	updatedUser.UpdatedAt = time.Now()
 
 	if err := s.repo.Update(ctx, &updatedUser); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to update the user in DB: %w", err)
 	}
 
 	go func(oldU, newU models.User) {
@@ -111,11 +112,11 @@ func (s *userService) UpdateUser(ctx context.Context, id string, req contracts.U
 func (s *userService) DeleteUser(ctx context.Context, id string) error {
 	user, err := s.repo.FindByID(ctx, id)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to find the user in DB: %w", err)
 	}
 
 	if err := s.repo.Delete(ctx, id); err != nil {
-		return err
+		return fmt.Errorf("failed to delete the user in DB: %w", err)
 	}
 
 	go func() {
@@ -148,7 +149,7 @@ func (s *userService) GetUsers(ctx context.Context, filter contracts.UserFilter,
 
 	users, err := s.repo.FindAll(ctx, repoFilter, repoPagination)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to find the user in DB: %w", err)
 	}
 
 	responses := make([]models.UserResponse, len(users))

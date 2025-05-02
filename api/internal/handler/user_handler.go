@@ -70,7 +70,7 @@ func (h *UserHandler) GetUsers(c *gin.Context) {
 func (h *UserHandler) CreateUser(c *gin.Context) {
 	var req contracts.CreateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		errorResponse(c, http.StatusBadRequest, "invalid request body")
+		errorResponse(c, http.StatusBadRequest, "invalid request body: "+err.Error())
 		return
 	}
 
@@ -122,7 +122,7 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-// errorResponse formats error responses consistently across handlers.
+// errorResponse formats error responses consistently across handlers
 func errorResponse(c *gin.Context, status int, message string) {
 	c.JSON(status, gin.H{"error": message})
 }
