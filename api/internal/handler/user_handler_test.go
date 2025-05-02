@@ -59,11 +59,11 @@ func TestUserHandler_CreateUser(t *testing.T) {
 	var response models.UserResponse
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
-	
+
 	assert.Equal(t, expectedUser.ID, response.ID)
 	assert.Equal(t, expectedUser.FirstName, response.FirstName)
 	assert.Equal(t, expectedUser.LastName, response.LastName)
 	assert.Equal(t, expectedUser.Nickname, response.Nickname)
-	
+
 	mockService.AssertExpectations(t)
 }
