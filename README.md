@@ -109,20 +109,46 @@ make test
 make test-cover
 ```
 
-## Deployment
-
-The service is containerized and deployable to any orchestration platform.
-
-### Production build
-
-```bash
-docker-compose -f docker-compose.yml up --build -d
-```
-
 ## Monitoring
 
 - **RabbitMQ Management UI**: [http://localhost:15672](http://localhost:15672)  
   _(Use credentials from `RABBITMQ_DEFAULT_USER` / `RABBITMQ_DEFAULT_PASS`)_
+
+---
+
+### Examples of API Calls for Postman
+
+| HTTP Request | URL                                         | Description                                             |
+| ------------ | ------------------------------------------- | ------------------------------------------------------- |
+| GET          | /users?country=Australia&page=1&limit=2     | Returns paginated user list with filtering              |
+| POST         | /users                                      | Adds a new user (see POST JSON body example below)      |
+| PUT          | /users/cf231110-57e3-48a0-9152-7b89168a5723 | Updates existing user (see PUT JSON body example below) |
+| DELETE       | /users/3c91b605-e532-4b77-9a6b-7748309c0fe5 | Deletes user with specified ID                          |
+| GET          | /health                                     | Returns health status                                   |
+
+**POST JSON example**
+
+```json
+{
+  "first_name": "Ava",
+  "last_name": "Nguyen",
+  "nickname": "AvaN23",
+  "email": "ava.nguyen@example.com",
+  "country": "Singapore"
+}
+```
+
+**PUT JSON example**
+
+```json
+{
+  "first_name": "Oliv",
+  "last_name": "Tay",
+  "nickname": "Liv_88",
+  "email": "olivia.taylor@gmail.com",
+  "country": "UK"
+}
+```
 
 ---
 
@@ -155,5 +181,3 @@ Events published to RabbitMQ:
 - `400` for invalid requests
 - `500` for server errors
 - Consistent error response format
-
----
