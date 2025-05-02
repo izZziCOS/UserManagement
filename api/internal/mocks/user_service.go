@@ -14,6 +14,9 @@ type UserService struct {
 
 func (m *UserService) CreateUser(ctx context.Context, req service.CreateUserRequest) (*models.UserResponse, error) {
 	args := m.Called(ctx, req)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
 	return args.Get(0).(*models.UserResponse), args.Error(1)
 }
 

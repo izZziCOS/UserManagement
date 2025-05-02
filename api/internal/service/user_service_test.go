@@ -43,4 +43,33 @@ func TestUserService_CreateUser(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 }
 
-// Add similar tests for other service methods
+func TestUserService_GetUsers(t *testing.T) {
+    mockRepo := new(mocks.UserRepository)
+    mockNotifier := new(mocks.Notifier)
+    service := NewUserService(mockRepo, mockNotifier)
+
+    firstName := "John"
+    country := "US"
+
+    reqFilter := contracts.UserFilter{
+        FirstName: &firstName,
+        Country:  &country,
+    }
+
+    reqPagination := contracts.Pagination{
+        Page:  1,
+        Limit: 1,
+    }
+
+    mockRepo.On("FindAll", 
+        mock.Anything,
+        mock.AnythingOfType("repository.UserFilter"),
+		mock.AnythingOfType("repository.Pagination"),
+    ).Return([]models.User{}, nil)
+
+    responses, err := service.GetUsers(context.Background(), reqFilter, reqPagination)
+
+    assert.NoError(t, err)
+    assert.NotNil(t, responses)
+    mockRepo.AssertExpectations(t)
+}
