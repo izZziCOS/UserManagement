@@ -63,7 +63,7 @@ USERMANAGEMENT/
 
 ## Getting Started
 
-### 1. Clone the repository
+### 1. Clone the repository (currently private)
 
 ```bash
 git clone https://github.com/izzzicos/UserManagement.git
@@ -80,11 +80,11 @@ Edit the example environment file to your needs located in (`.env`):
 | `DB_HOST`               | PostgreSQL host          | db                                |
 | `DB_PORT`               | PostgreSQL port          | 5432                              |
 | `DB_USER`               | Database username        | postgres                          |
-| `DB_PASSWORD`           | Database password        | changeme                          |
+| `DB_PASSWORD`           | Database password        | secretPassword                    |
 | `DB_NAME`               | Database name            | userdb                            |
 | `AMQP_URL`              | RabbitMQ connection URL  | amqp://guest:guest@rabbitmq:5672/ |
-| `RABBITMQ_DEFAULT_USER` | RabbitMQ username        | guest                             |
-| `RABBITMQ_DEFAULT_PASS` | RabbitMQ password        | guest                             |
+| `RABBITMQ_DEFAULT_USER` | RabbitMQ username        | user                              |
+| `RABBITMQ_DEFAULT_PASS` | RabbitMQ password        | password                          |
 
 ---
 
