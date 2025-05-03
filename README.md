@@ -1,6 +1,6 @@
 # User Management API
 
-A RESTful API for managing users with PostgreSQL storage and RabbitMQ event notifications. This code currently runs 3 services.
+A RESTful API for managing users with PostgreSQL storage and RabbitMQ event notifications, when deployed it starts these services separate:
 
 - Backend API
 - PostgreSQL database
