@@ -63,7 +63,7 @@ USERMANAGEMENT/
 
 ## Getting Started
 
-### 1. Clone the repository (currently private)
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/izzzicos/UserManagement.git
